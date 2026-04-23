@@ -1,3 +1,8 @@
+#python
+# This script sets the joint angles of the UR5 robot in CoppeliaSim via 
+# the ZMQ remote API.
+
+
 from coppeliasim_zmqremoteapi_client import RemoteAPIClient
 
 
@@ -28,6 +33,7 @@ def main():
     print(f'Found {len(joints)} joints')
 
     # Desired UR5 joint angles in radians, ordered base -> tip.
+    # Which were obtained by running the simple_script_warm_start.py script.
     thetas = [
         1.0249331404814992,
         0.5266493442780539,
