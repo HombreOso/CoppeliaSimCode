@@ -60,7 +60,7 @@ def sysCall_init():
     # Set the TARGET's pose (not the tip's!) relative to the UR5 BASE (ur5 handle),
     # so T_sd is interpreted in the base frame exactly as defined above
     sim.setObjectMatrix(target, T_sd_flat, ur5)
-    # Run the IK solver; `syncWorlds` copies the solved joint values back into the scene.
+    # Solve IK once here so we can print the initial solution for the chosen T_sd.
     # Python signature: result, flags, precision = simIK.handleGroup(env, group, options)
     result, flags, precision = simIK.handleGroup(ikEnv, ikGroup, {'syncWorlds': True})
     # Map the numeric result code to a readable string for easier debugging
@@ -75,8 +75,23 @@ def sysCall_init():
     theta = [sim.getJointPosition(j) for j in joints]
     # Print solution so the user can inspect it
     print("theta =", theta)
+    # Seed the dynamic motor controllers with the IK solution so joints don't snap back
+    for j, q in zip(joints, theta):
+        sim.setJointTargetPosition(j, q)
+
+def sysCall_actuation():
+    # Re-solve IK each simulation step so the tip stays locked on target even under
+    # dynamics. syncWorlds syncs current joint states in and writes solved states back.
+    simIK.handleGroup(ikEnv, ikGroup, {'syncWorlds': True})
+    # For dynamically simulated joints we must command target positions, not positions,
+    # otherwise the motor PID drives them back to whatever target was last set (e.g. 0)
+    for j in joints:
+        sim.setJointTargetPosition(j, sim.getJointPosition(j))
 
 def sysCall_cleanup():
     # Free the IK environment if it was successfully created during init
     if 'ikEnv' in globals():
         simIK.eraseEnvironment(ikEnv)
+
+
+
